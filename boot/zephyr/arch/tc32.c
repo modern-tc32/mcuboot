@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include <zephyr/kernel.h>
+#include <zephyr/drivers/uart.h>
 #include <zephyr/sys/util.h>
 
 #include "bootutil/bootutil_log.h"
@@ -76,6 +77,15 @@ void do_boot(const struct boot_rsp *rsp)
 	}
 
 	memcpy(tc32_head, image, head_size);
+
+#if defined(CONFIG_MCUBOOT_SERIAL) && defined(CONFIG_BOOT_SERIAL_UART)
+	/*
+	 * Serial recovery receives through DMA into the loader's SRAM. Stop it
+	 * before the jump: a byte that arrives later would be written into
+	 * memory that belongs to the application by then.
+	 */
+	uart_irq_rx_disable(DEVICE_DT_GET(DT_CHOSEN(zephyr_uart_mcumgr)));
+#endif
 
 	irq_lock();
 	tc32_head_copy_and_enter(tc32_head, head_size / sizeof(uint32_t));
