@@ -17,14 +17,6 @@
 	};
 };
 
-/*
- * The loader runs on the reset clock, 16 MHz, not the 24 MHz the SoC dtsi
- * assumes for the UART, which would make every baud rate 2/3 of the one asked.
- */
-&uart0 {
-	clock-frequency = <16000000>;
-};
-
 &flash {
 	partitions {
 		/delete-node/ partition@0;
