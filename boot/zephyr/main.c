@@ -334,6 +334,12 @@ int main(void)
 #ifdef CONFIG_MCUBOOT_INDICATION_LED
     io_led_set(1);
 #endif
+#ifdef CONFIG_BOOT_SERIAL_WAIT_FOR_DFU_FIRST
+    /* Returns when the timeout passes without a command; a command keeps
+     * the loader in serial recovery for good.
+     */
+    boot_serial_check_start(&boot_funcs, timeout_in_ms);
+#endif
 #endif
 
     BOOT_HOOK_GO_CALL_FIH(boot_go_hook, FIH_BOOT_HOOK_REGULAR, fih_rc, &rsp);
@@ -356,7 +362,7 @@ int main(void)
     }
 #endif
 
-#ifdef CONFIG_BOOT_SERIAL_WAIT_FOR_DFU
+#if defined(CONFIG_BOOT_SERIAL_WAIT_FOR_DFU) && !defined(CONFIG_BOOT_SERIAL_WAIT_FOR_DFU_FIRST)
     timeout_in_ms -= (k_uptime_get_32() - start);
     if( timeout_in_ms <= 0 ) {
         /* at least one check if time was expired */

@@ -273,6 +273,16 @@ config BOOT_SERIAL_WAIT_FOR_DFU_TIMEOUT
 	help
 	  Timeout in ms for MCUboot to wait to allow for DFU to be invoked.
 
+config BOOT_SERIAL_WAIT_FOR_DFU_FIRST
+	bool "Wait for DFU before validating the application"
+	depends on BOOT_SERIAL_WAIT_FOR_DFU
+	help
+	  Listen for the DFU command for the whole timeout before the image is
+	  checked, instead of overlapping the wait with the check. The overlap
+	  makes the wait shrink by the time the check takes: on a slow core a
+	  check that outlasts the timeout leaves a single read of the console,
+	  which a command of more than one line does not survive.
+
 config BOOT_SERIAL_INACTIVITY_TIMEOUT
 	int "Inactivity timeout for serial recovery in ms"
 	default 0
