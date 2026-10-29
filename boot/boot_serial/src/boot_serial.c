@@ -166,9 +166,9 @@ BOOT_LOG_MODULE_DECLARE(mcuboot);
 #define SWAP_USING_OFFSET_SECTOR_UPDATE_BEGIN 1
 #define BOOT_DIRECT_UPLOAD_SECONDARY_SLOT_ID_REMAINDER 0
 
-static char in_buf[MCUBOOT_SERIAL_MAX_RECEIVE_SIZE + 1];
+static char in_buf[MCUBOOT_SERIAL_MAX_RECEIVE_SIZE + 1] __attribute__((aligned(4)));
 #ifndef MCUBOOT_SERIAL_RAW_PROTOCOL
-static char dec_buf[MCUBOOT_SERIAL_MAX_RECEIVE_SIZE + 1];
+static char dec_buf[MCUBOOT_SERIAL_MAX_RECEIVE_SIZE + 1] __attribute__((aligned(4)));
 #endif
 const struct boot_uart_funcs *boot_uf;
 static struct nmgr_hdr *bs_hdr;
