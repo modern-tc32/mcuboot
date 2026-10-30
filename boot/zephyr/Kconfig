@@ -1544,6 +1544,23 @@ config MCUBOOT_DEVICE_CPU_CORTEX_M0
 
 endmenu
 
+config BOOT_TC32_HEAD_PAD
+	hex "Padding of the loader's own SRAM head, in bytes (TC32)"
+	depends on TC32
+	default 0x0
+	help
+	  The head of the loader (vectors and the code the boot ROM copies to
+	  SRAM) is followed in SRAM by the scratch area of the instruction
+	  cache. do_boot() copies the head of the application over the low
+	  SRAM while it runs from flash through that cache, so an application
+	  head that is larger than the loader's overwrites the cache lines the
+	  copy loop is being fetched from and the application never starts.
+	  Padding the loader's head up to the largest application head keeps its
+	  cache scratch above everything the copy writes. The head, with this
+	  padding rounded up to 256 bytes, plus 0x900 bytes of cache scratch has to
+	  fit in the boot mirror (CONFIG_TC32_BOOT_MIRROR_SIZE, 0x2000 by default),
+	  so the application head can be 0x1700 bytes at most.
+
 comment "Zephyr configuration options"
 
 # Disabling MULTITHREADING provides a code size advantage, but

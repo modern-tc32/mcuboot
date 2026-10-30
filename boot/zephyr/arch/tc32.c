@@ -35,6 +35,20 @@ BOOT_LOG_MODULE_DECLARE(mcuboot);
 #define TC32_BOOT_COPY_UNIT	16U
 #define TC32_BOOT_HEAD_MAX	CONFIG_TC32_BOOT_MIRROR_SIZE
 
+/*
+ * The instruction cache scratch area of this loader follows its head in SRAM,
+ * and the copy below runs from flash through that cache. An application head
+ * larger than this loader's head would overwrite the cache lines of the copy
+ * loop, so the loader's head is padded (CONFIG_BOOT_TC32_HEAD_PAD) and an
+ * application whose head does not fit under it is refused.
+ */
+extern char _tc32_boot_copy_size_align_256_[];
+
+#if CONFIG_BOOT_TC32_HEAD_PAD > 0
+static const uint8_t tc32_head_pad[CONFIG_BOOT_TC32_HEAD_PAD]
+	__attribute__((section(".ram_code"), used, retain)) = {1};
+#endif
+
 static uint32_t tc32_head[TC32_BOOT_HEAD_MAX / sizeof(uint32_t)];
 
 static void __noinline tc32_head_copy_and_enter(const uint32_t *src, size_t words)
@@ -73,6 +87,11 @@ void do_boot(const struct boot_rsp *rsp)
 
 	if (signature != TC32_BOOT_SIGNATURE || head_size == 0U || head_size > TC32_BOOT_HEAD_MAX) {
 		BOOT_LOG_ERR("Bad TC32 boot header");
+		FIH_PANIC;
+	}
+
+	if (head_size > (uintptr_t)_tc32_boot_copy_size_align_256_) {
+		BOOT_LOG_ERR("Application head is larger than the loader's");
 		FIH_PANIC;
 	}
 
