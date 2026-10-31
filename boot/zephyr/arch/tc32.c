@@ -9,6 +9,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/sys/util.h>
+#include <zephyr/devicetree.h>
 
 #include "bootutil/bootutil_log.h"
 #include "bootutil/bootutil.h"
@@ -111,3 +112,27 @@ void do_boot(const struct boot_rsp *rsp)
 
 	CODE_UNREACHABLE;
 }
+
+#ifdef CONFIG_BOOT_TC32_SERIAL_BREAK_ENTRANCE
+/* PA0, the receive pin of uart0 (uart0_rx_default in tlsr8258.dtsi). */
+#define TC32_SERIAL_RX_GPIO_INPUT	((volatile uint8_t *)DT_REG_ADDR(DT_NODELABEL(gpioa)))
+#define TC32_SERIAL_RX_MASK		BIT(0)
+#define TC32_SERIAL_BREAK_SAMPLES	20U
+#define TC32_SERIAL_BREAK_STEP_US	100U
+
+bool tc32_serial_break_detect(void)
+{
+	/*
+	 * The line has to stay low for the whole 2 ms: a break lasts tens of
+	 * milliseconds, a glitch of the host adapter during the reset does not.
+	 */
+	for (unsigned int i = 0U; i < TC32_SERIAL_BREAK_SAMPLES; i++) {
+		if ((*TC32_SERIAL_RX_GPIO_INPUT & TC32_SERIAL_RX_MASK) != 0U) {
+			return false;
+		}
+		k_busy_wait(TC32_SERIAL_BREAK_STEP_US);
+	}
+
+	return true;
+}
+#endif /* CONFIG_BOOT_TC32_SERIAL_BREAK_ENTRANCE */

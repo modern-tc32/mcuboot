@@ -172,7 +172,8 @@ void zephyr_boot_log_stop(void)
         */
 
 #if defined(CONFIG_BOOT_SERIAL_ENTRANCE_GPIO) || defined(CONFIG_BOOT_SERIAL_PIN_RESET) \
-    || defined(CONFIG_BOOT_SERIAL_BOOT_MODE) || defined(CONFIG_BOOT_SERIAL_NO_APPLICATION)
+    || defined(CONFIG_BOOT_SERIAL_BOOT_MODE) || defined(CONFIG_BOOT_SERIAL_NO_APPLICATION) \
+    || defined(CONFIG_BOOT_TC32_SERIAL_BREAK_ENTRANCE)
 /* Enters serial recovery and never returns. inactivity_in_ms of 0 waits for
  * a manual reset; a positive value resets the SoC after that much silence,
  * so an aborted update doesn't strand a device with a valid image.
@@ -266,6 +267,12 @@ int main(void)
     BOOT_LOG_DBG("Checking GPIO for serial recovery");
     if (io_detect_pin() &&
             !io_boot_skip_serial_recovery()) {
+        boot_serial_enter(0);
+    }
+#endif
+
+#ifdef CONFIG_BOOT_TC32_SERIAL_BREAK_ENTRANCE
+    if (tc32_serial_break_detect()) {
         boot_serial_enter(0);
     }
 #endif

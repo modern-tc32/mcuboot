@@ -1545,6 +1545,17 @@ config MCUBOOT_DEVICE_CPU_CORTEX_M0
 
 endmenu
 
+config BOOT_TC32_SERIAL_BREAK_ENTRANCE
+	bool "Enter serial recovery when the UART receive line is held low (TC32)"
+	depends on TC32 && MCUBOOT_SERIAL && BOOT_SERIAL_UART
+	help
+	  Right after the reset the loader samples the receive pin of the
+	  mcumgr UART. A host that holds a break on its transmit line while it
+	  resets the module keeps the loader in serial recovery; with the line
+	  idle the application starts at once. The pin is read from the GPIO
+	  input register, so it keeps its UART function. Needs no wait window
+	  for the host to hit.
+
 config BOOT_TC32_HEAD_PAD
 	hex "Padding of the loader's own SRAM head, in bytes (TC32)"
 	depends on TC32
