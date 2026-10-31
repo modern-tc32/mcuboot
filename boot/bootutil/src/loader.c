@@ -718,6 +718,57 @@ out:
     FIH_RET(fih_rc);
 }
 
+#if defined(MCUBOOT_VALIDATE_PRIMARY_SLOT_ONCE) && defined(MCUBOOT_OVERWRITE_ONLY) && \
+    !defined(MCUBOOT_VALIDATE_PRIMARY_SLOT)
+/**
+ * Validates the primary slot only when its trailer does not say that it was
+ * validated already. An overwrite upgrade erases the primary trailer and then
+ * writes the magic alone, and an image uploaded by serial recovery erases the
+ * whole slot, so a new image is always checked once. The result is cached in
+ * the trailer, which anyone able to write the flash can forge: it only saves
+ * the time of the check on a device that does not rely on it for security.
+ */
+static fih_ret
+boot_validate_primary_once(struct boot_loader_state *state)
+{
+    const struct flash_area *fap = BOOT_IMG_AREA(state, BOOT_SLOT_PRIMARY);
+    struct boot_swap_state swap_state;
+    FIH_DECLARE(fih_rc, FIH_FAILURE);
+    int rc;
+
+    rc = boot_read_swap_state(fap, &swap_state);
+    if (rc != 0) {
+        FIH_RET(FIH_FAILURE);
+    }
+
+    if (swap_state.magic == BOOT_MAGIC_GOOD && swap_state.image_ok == BOOT_FLAG_SET) {
+        /* The header was read from the slot already; refuse an erased one. */
+        if (!boot_check_header_valid(state, BOOT_SLOT_PRIMARY)) {
+            FIH_RET(FIH_FAILURE);
+        }
+        FIH_RET(FIH_SUCCESS);
+    }
+
+    FIH_CALL(boot_validate_slot, fih_rc, state, BOOT_SLOT_PRIMARY, NULL, 0);
+    if (FIH_NOT_EQ(fih_rc, FIH_SUCCESS)) {
+        FIH_RET(fih_rc);
+    }
+
+    if (swap_state.magic != BOOT_MAGIC_GOOD) {
+        rc = boot_write_magic(fap);
+        if (rc != 0) {
+            FIH_RET(FIH_FAILURE);
+        }
+    }
+    rc = boot_write_image_ok(fap);
+    if (rc != 0) {
+        FIH_RET(FIH_FAILURE);
+    }
+
+    FIH_RET(FIH_SUCCESS);
+}
+#endif
+
 #if !defined(MCUBOOT_DIRECT_XIP) && !defined(MCUBOOT_RAM_LOAD)
 /**
  * Determines which swap operation to perform, if any.  If it is determined
@@ -1889,8 +1940,13 @@ context_boot_go(struct boot_loader_state *state, struct boot_rsp *rsp)
              */
         }
 
+#if defined(MCUBOOT_VALIDATE_PRIMARY_SLOT) || \
+    (defined(MCUBOOT_VALIDATE_PRIMARY_SLOT_ONCE) && defined(MCUBOOT_OVERWRITE_ONLY))
 #ifdef MCUBOOT_VALIDATE_PRIMARY_SLOT
         FIH_CALL(boot_validate_slot, fih_rc, state, BOOT_SLOT_PRIMARY, NULL, 0);
+#else
+        FIH_CALL(boot_validate_primary_once, fih_rc, state);
+#endif
         /* Check for all possible values is redundant in normal operation it
          * is meant to prevent FI attack.
          */
@@ -1913,7 +1969,7 @@ context_boot_go(struct boot_loader_state *state, struct boot_rsp *rsp)
             FIH_SET(fih_rc, FIH_FAILURE);
             goto out;
         }
-#endif /* MCUBOOT_VALIDATE_PRIMARY_SLOT */
+#endif /* MCUBOOT_VALIDATE_PRIMARY_SLOT || MCUBOOT_VALIDATE_PRIMARY_SLOT_ONCE */
 
         rc = boot_update_hw_rollback_protection(state);
         if (rc != 0) {

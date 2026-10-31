@@ -565,10 +565,11 @@ config BOOT_VALIDATE_SLOT0
 
 config BOOT_VALIDATE_SLOT0_ONCE
 	bool "Validate image in the primary slot just once after after upgrade"
-	depends on !BOOT_VALIDATE_SLOT0 && SINGLE_APPLICATION_SLOT
+	depends on !BOOT_VALIDATE_SLOT0 && (SINGLE_APPLICATION_SLOT || BOOT_UPGRADE_ONLY)
 	help
 	  If y, the bootloader attempts to validate the signature of the
-	  primary slot only once after an upgrade of the main slot.
+	  primary slot only once after an upgrade of the main slot (with
+	  BOOT_UPGRADE_ONLY and two slots, after a copy or an upload).
 	  It caches the result in the magic area, which makes it an unsecure
 	  method. This option is usefull for lowering the boot up time for
 	  low end devices with as a compromise lowering the security level.
