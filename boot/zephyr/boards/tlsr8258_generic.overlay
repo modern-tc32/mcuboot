@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2026 Ivan Belokobylskiy
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * MCUboot sits at flash 0, where the boot ROM finds the "KNLT" boot mark.
+ * The two image slots are equal-sized for the overwrite-only upgrade and
+ * end where the factory IEEE address sector begins. The layout is the one of
+ * tlsr8258_tb03f and of the tlsr8258-mcuboot snippet of the Zephyr tree.
+ *
+ * Serial recovery is on, on UART0 (TX PB1, RX PA0). A device that has no such
+ * pins, or uses them otherwise, builds the loader with its own loader.conf and
+ * loader.overlay on top of this board and turns it off.
+ */
+
+/ {
+	chosen {
+		zephyr,code-partition = &boot_partition;
+		zephyr,uart-mcumgr = &uart0;
+	};
+};
+
+&flash {
+	partitions {
+		/delete-node/ partition@0;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 0x00008000>;
+		};
+
+		slot0_partition: partition@8000 {
+			label = "image-0";
+			reg = <0x00008000 0x00037000>;
+		};
+
+		slot1_partition: partition@3f000 {
+			label = "image-1";
+			reg = <0x0003f000 0x00037000>;
+		};
+	};
+};
