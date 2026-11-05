@@ -1,0 +1,53 @@
+/*
+ * Copyright (c) 2026 Ivan Belokobylskiy
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * MCUboot of the BL702 (XT-ZB1). The boot ROM reads the boot header at flash 0 (the flashing tool writes
+ * it) and runs the first image, which sits at 0x2000: this loader. The two image slots are equal-sized for
+ * the overwrite-only upgrade; the NV storage stays at 0xF8000, after them. Flash map:
+ *
+ *   0x000000  boot header (0x2000)         0x020000  slot 0 (0x68000)
+ *   0x002000  MCUboot (0x1E000)            0x088000  slot 1 (0x68000)
+ *                                          0x0F8000  storage (32 KB)
+ */
+
+/ {
+	chosen {
+		zephyr,code-partition = &boot_partition;
+	};
+};
+
+&kh25v80 {
+	partitions {
+		/delete-node/ partition@2000;
+		/delete-node/ partition@80000;
+
+		boot_partition: partition@2000 {
+			compatible = "zephyr,mapped-partition";
+			label = "mcuboot";
+			reg = <0x00002000 0x0001e000>;
+			read-only;
+		};
+
+		slot0_partition: partition@20000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-0";
+			reg = <0x00020000 0x00068000>;
+		};
+
+		slot1_partition: partition@88000 {
+			compatible = "zephyr,mapped-partition";
+			label = "image-1";
+			reg = <0x00088000 0x00068000>;
+		};
+
+		storage_partition: partition@f8000 {
+			compatible = "zephyr,mapped-partition";
+			label = "storage";
+			reg = <0x000f8000 0x00008000>;
+		};
+	};
+};
