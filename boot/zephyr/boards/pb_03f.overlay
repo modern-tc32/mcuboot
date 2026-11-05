@@ -1,0 +1,41 @@
+/*
+ * Copyright (c) 2026 Ivan Belokobylskiy
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * MCUboot of the PB-03F (PHY6252). The boot ROM runs the image at flash 0x2000 through the segment table at
+ * its start (zephyr.phy6252.bin, made by the SoC). The loader's code is in the flash between that table and
+ * the application: it is XIP at 0x11002400. One slot only: the XIP window of the chip is 127 KB, so there is
+ * no room for a second one, the application is replaced through the serial recovery (mcumgr over UART0).
+ *
+ *   0x002000  loader image: table (0x400), code to 0x10000
+ *   0x010000  slot 0, 0x20000 (the MCUboot header 0x200, then the application)
+ *   0x03d000  storage (the NV of the application)
+ */
+
+/ {
+	chosen {
+		zephyr,uart-mcumgr = &uart0;
+	};
+};
+
+&flash0 {
+	reg = <0x11002400 0xdc00>;
+};
+
+&flash_memory {
+	partitions {
+		boot_partition: partition@2400 {
+			label = "mcuboot";
+			reg = <0x00002400 0x0000dc00>;
+			read-only;
+		};
+
+		slot0_partition: partition@10000 {
+			label = "image-0";
+			reg = <0x00010000 0x00020000>;
+		};
+	};
+};
