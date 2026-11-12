@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) 2026 Ivan Belokobylskiy
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * MCUboot of the ECB02C (PHY6252/6222). The boot ROM runs the image at flash 0x2000 through the segment table
+ * at its start (zephyr.phy6252.bin, made by the SoC). The loader's code is XIP at 0x11010100, as the code of
+ * a plain application: on the hardware an image XIP below 0x10000 does not start. One slot only, the
+ * application is replaced through the serial recovery (mcumgr over UART1, P2/P3).
+ *
+ *   0x002000  ROM segment table
+ *   0x010000  loader, 0x7f00 (XIP from 0x10100)
+ *   0x018000  slot 0, 0x25000 (the MCUboot header 0x200, then the application)
+ *   0x03d000  storage (the NV of the application)
+ */
+
+/ {
+	chosen {
+		zephyr,uart-mcumgr = &uart1;
+		/delete-property/ zephyr,code-partition;
+	};
+};
+
+
+&flash0 {
+	reg = <0x11010100 0x7f00>;
+};
+
+&flash_memory {
+	partitions {
+		boot_partition: partition@10100 {
+			label = "mcuboot";
+			reg = <0x00010100 0x00007f00>;
+			read-only;
+		};
+
+		slot0_partition: partition@18000 {
+			label = "image-0";
+			reg = <0x00018000 0x00025000>;
+		};
+	};
+};
